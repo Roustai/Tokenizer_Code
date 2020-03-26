@@ -1,0 +1,107 @@
+from bs4 import BeautifulSoup
+
+from keras.preprocessing.sequence import pad_sequences
+from transformers import BertTokenizer, BertModel
+import torch
+
+def extractSegments(transcript, maskJargon=False):
+    emphasis_tags = ['<Emphasis>', '</Emphasis>']
+
+    with open(transcript, 'r') as t:
+        text = t.read()
+
+        # remove emphasis tags to avoid the issue of
+        # invalid/overlapping tags
+        for emphasis_tag in emphasis_tags:
+            text = text.replace(emphasis_tag, '')
+
+        soup = BeautifulSoup(text, 'lxml')
+
+        # replace jargon with [MASK] token
+        if maskJargon == True:
+            for jargon in soup.findAll('jargon'):
+                jargon.string = '[MASK]'
+
+            for jargon in soup.findAll('jargon'):
+                jargon.replaceWithChildren()
+
+        segments = []
+
+        # write only if the segment consists of actual text
+        # (not a blank line)
+        for segment in soup.findAll('segment'):
+            if (not segment.text.isspace()):
+                segments.append(segment.text.strip())
+
+        return segments
+
+
+def tokenizeSegments(segments):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+    tokenized_segments = []
+    token_ids = []
+
+    i = 0
+
+    for segment in segments:
+        # `encode` will:
+        #   (1) Tokenize the sentence.
+        #   (2) Prepend the [CLS] token to the start. (token_id=101)
+        #   (3) Append the [SEP] token to the end. (token_id=102)
+        #   (4) Map tokens to their IDs.
+        encoded_segment = tokenizer.encode(segment, add_special_tokens=True)
+        token_ids.append(encoded_segment)
+
+        # Just to see what the tokenized sentence looks like
+        tokenized_segments.append(tokenizer.tokenize('[CLS] ' + segment + ' [SEP]'))
+
+    return token_ids, tokenized_segments
+
+# Pad our input tokens with value 0 / the [PAD] token
+# "post" indicates that we want to pad and truncate at the end of the sequence,
+# as opposed to the beginning.
+def padTokens(token_ids, max_length):
+    return pad_sequences(token_ids, maxlen=max_length, dtype="long",
+                              value=0, truncating="post", padding="post")
+
+def getAttentionMasks(token_ids):
+    attention_masks = []
+
+    for segment in token_ids:
+        # Create the attention mask.
+        # Set the mask to 0 if token_id == 0 ([PAD] token)
+        # Set the mask to 1 if token_id > 0
+        attention_mask = [int(token_id > 0) for token_id in segment]
+
+        # Store the attention mask for this sentence.
+        attention_masks.append(attention_mask)
+
+    return attention_masks
+
+#Gather Transcripts and store the file locations into
+transcripts = open('/home/aroustai/meetingMinutes/meeting-summarization/transcriptNames.txt', 'r').read().splitlines()
+
+j = 0
+location_of_file = [0] * len(transcripts)
+for i in transcripts:
+    location_of_file[j] =  '/home/aroustai/meetingMinutes/meeting-summarization/annotated transcripts/' + i
+    #print(segments[j])
+    j=j+1
+
+print(j)
+#Segments with masked Jargon
+segments = extractSegments(location_of_file[6], maskJargon=False)
+
+print(segments)
+#Tokenize Segments
+token_ids, tokenized_segments = tokenizeSegments(segments)
+
+#Get maximum size of data in set
+max_length = max([len(tok) for tok in token_ids])
+
+#Set token padding to such
+padded_token_ids = padTokens(token_ids, 128)
+
+#Set attention mask
+attention_masks = getAttentionMasks(padded_token_ids)
