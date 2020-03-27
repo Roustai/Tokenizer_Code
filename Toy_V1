@@ -86,22 +86,20 @@ j = 0
 location_of_file = [0] * len(transcripts)
 for i in transcripts:
     location_of_file[j] =  '/home/aroustai/meetingMinutes/meeting-summarization/annotated transcripts/' + i
-    #print(segments[j])
+    print(location_of_file[j])
     j=j+1
 
-print(j)
+#print(len(transcripts))
 #Segments with masked Jargon
-segments = extractSegments(location_of_file[6], maskJargon=False)
+#segments = extractSegments(location_of_file[9], maskJargon=False)
+#print(segments)
 
-print(segments)
-#Tokenize Segments
-token_ids, tokenized_segments = tokenizeSegments(segments)
+#loop through and pad all tokens
+for i in range(len(transcripts)):
+    print(i)
+    segments = extractSegments(location_of_file[i], maskJargon=False)
+    print(segments)
+    token_ids, tokenized_segments = tokenizeSegments(segments)
+    padded_token_ids = padTokens(token_ids, 128)
+    attention_masks = getAttentionMasks(padded_token_ids)
 
-#Get maximum size of data in set
-max_length = max([len(tok) for tok in token_ids])
-
-#Set token padding to such
-padded_token_ids = padTokens(token_ids, 128)
-
-#Set attention mask
-attention_masks = getAttentionMasks(padded_token_ids)
