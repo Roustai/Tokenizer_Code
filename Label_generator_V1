@@ -1,0 +1,36 @@
+import xml.etree.ElementTree as ET
+
+def xmlData(file):
+    root = ET.parse(file).getroot()
+    data = []
+    for extsumm in root.iter():
+        href = extsumm.get('href')
+        if href != None:
+            data.append(href.split('#'))
+
+    return data
+#print(data)
+
+def dialogueSearch(files):
+    file_name, dialogue_name = zip(*files)
+    print(file_name[0])
+    file_location = [0] * len(file_name)
+
+    #Gather all file names that will be needed
+    for i in range(len(file_name)):
+        file_location[i] = '/home/aroustai/Downloads/ICSIplus/DialogueActs/' + file_name[i]
+
+        root = ET.parse(file_location[i]).getroot()
+        for values in root.findall('dialogueact'):
+            dialogue = values.find(dialogue_name[i])
+            print(dialogue)
+
+    return file_location
+
+test_file = '/home/aroustai/Downloads/ICSIplus/Contributions/Summarization/extractive/Buw001.extsumm.xml'
+
+data = xmlData(test_file)
+print(data)
+
+#data is a 2-D tupple, first dimension is file name, second is relevant line
+#print(dialogueSearch(data))
