@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+test_file = '/home/alex/Downloads/ICSI_plus_NXT/ICSIplus/Contributions/Summarization/extractive/Buw001.extsumm.xml'
 
 def xmlData(file):
     root = ET.parse(file).getroot()
@@ -7,30 +8,59 @@ def xmlData(file):
         href = extsumm.get('href')
         if href != None:
             data.append(href.split('#'))
-
+    
+    #Strip contents from id(contents)
+    for i in range(len(data)):
+        data[i][1] = data[i][1].replace('id(' , '')
+        data[i][1] = data[i][1].replace(')' , '')
+    
+    #Data is not always stored cleanly in xml file, this function cleansup odd shaped data
+    #that can come in the form of {file: [dial1, dial 2]} -> {file: [dial1, file:dial2]}
+        if data[i][1].find('..') != -1:
+            item_1, item_2 = data[i][1].split('..')
+            data[i][1] = item_1
+            data.append([data[i][0],item_2])
     return data
-#print(data)
+
+raw_data = xmlData(test_file)
+
+
 
 def dialogueSearch(files):
+    location = '/home/alex/Downloads/ICSI_plus_NXT/ICSIplus/DialogueActs/'
     file_name, dialogue_name = zip(*files)
-    print(file_name[0])
-    file_location = [0] * len(file_name)
+    file_location = [] #
+    
+    #create dictionary hierarchy as such (file name -> dialogue act)
+    d_hold = {}
+    for elem in files:
+        if elem[0] in d_hold:
+            d_hold[elem[0]].append(elem[1])
+        else:
+            d_hold[elem[0]] = [elem[1]]
+    
+    #create a key and save items fro dialogue act like such
+    #(file_name -> dialogue_act -> [speaker_id, start_time, stop_time])
+    
+    for key, elem in d_hold.items():
+        hierarchy = {}
+        root = ET.parse(location + key).getroot()
+        for dial in root.iter('dialogueact'):
+            start_time = dial.get('starttime')
+            end_time = dial.get('endtime')
+            speaker_id = dial.get ('participant')
+            dialogue_id = dial.get ('{http://nite.sourceforge.net/}id')
+            if dialogue_id in elem:
+                hierarchy = {end_time, speaker_id, dialogue_id}
+                d_hold[key][0].update(hierarchy)
+                #print(d_hold[key][0])
 
-    #Gather all file names that will be needed
-    for i in range(len(file_name)):
-        file_location[i] = '/home/aroustai/Downloads/ICSIplus/DialogueActs/' + file_name[i]
+    print(d_hold)
 
-        root = ET.parse(file_location[i]).getroot()
-        for values in root.findall('dialogueact'):
-            dialogue = values.find(dialogue_name[i])
-            print(dialogue)
+    #Search through files for speaker id, start time, and stop time
+    file_location = location + file_name[0]  
+    
 
     return file_location
 
-test_file = '/home/aroustai/Downloads/ICSIplus/Contributions/Summarization/extractive/Buw001.extsumm.xml'
-
-data = xmlData(test_file)
-print(data)
-
-#data is a 2-D tupple, first dimension is file name, second is relevant line
-#print(dialogueSearch(data))
+test = dialogueSearch(raw_data)
