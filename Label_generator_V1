@@ -24,43 +24,24 @@ def xmlData(file):
 
 raw_data = xmlData(test_file)
 
-
-
 def dialogueSearch(files):
+    #General Location for all files in the "dialogue act folder"
     location = '/home/alex/Downloads/ICSI_plus_NXT/ICSIplus/DialogueActs/'
     file_name, dialogue_name = zip(*files)
-    file_location = [] #
-    
-    #create dictionary hierarchy as such (file name -> dialogue act)
-    d_hold = {}
-    for elem in files:
-        if elem[0] in d_hold:
-            d_hold[elem[0]].append(elem[1])
-        else:
-            d_hold[elem[0]] = [elem[1]]
-    
-    #create a key and save items fro dialogue act like such
-    #(file_name -> dialogue_act -> [speaker_id, start_time, stop_time])
-    
-    for key, elem in d_hold.items():
-        hierarchy = {}
-        root = ET.parse(location + key).getroot()
+    d = dict(zip(range(len(file_name)), file_name))
+    for key, elem in d.items():
+        d[key] ={elem : dialogue_name[key]}
+        #Now to parse through file and get item information and set up the hierarchy
+        # Number: -> File Name -> dialogue act -> Start Time, Stop Time, Participant
+        root = ET.parse(location + elem).getroot()
         for dial in root.iter('dialogueact'):
             start_time = dial.get('starttime')
             end_time = dial.get('endtime')
             speaker_id = dial.get ('participant')
             dialogue_id = dial.get ('{http://nite.sourceforge.net/}id')
-            if dialogue_id in elem:
-                hierarchy = {end_time, speaker_id, dialogue_id}
-                d_hold[key][0].update(hierarchy)
-                #print(d_hold[key][0])
-
-    print(d_hold)
-
-    #Search through files for speaker id, start time, and stop time
-    file_location = location + file_name[0]  
-    
-
-    return file_location
-
+            if dialogue_id == dialogue_name[key]:
+                d[key][elem] = {dialogue_id :{'start time' : start_time, 'stop time' : end_time, 
+                                                        'Participant' : speaker_id,}}
+    for key in d.items():
+        print(key)
 test = dialogueSearch(raw_data)
