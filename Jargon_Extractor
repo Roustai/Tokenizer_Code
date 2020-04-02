@@ -99,7 +99,7 @@ average_length = []
 for name in transcripts:
     file_name.append(name)
 
-print(file_name)
+#print(file_name)
 # Open the file and read it all into one list
 for name in file_name:
     filename = "/home/alex/Downloads/meeting-summarization-master/annotated transcripts/" + name
@@ -123,7 +123,7 @@ for name in file_name:
     for i in range(len(seperatedJargon)):
             formattedJargon = ListToStr(seperatedJargon[i])
             #print("Formatted: " + formattedJargon)
-            res = len(formattedJargon.split())
+            res = len(formattedJargon)
             total = res + total
             #print ("The number of words in string are : " +  str(res)) 
 
