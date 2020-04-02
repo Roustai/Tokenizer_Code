@@ -1,0 +1,139 @@
+# Imports and path to files
+import os
+import time
+import numpy as np
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+
+# Parses the list that was made from the file and stores all jargon phrases in their own list
+def JargonExtractor(file):
+    length = len(file)
+    index = 0
+    jargonFlag = 0
+    numOfJargon = 0
+    ignoreFlag = 0
+    jargonContents = 0
+    temperaryList = []
+    seperatedJargon = []
+    del seperatedJargon[:]
+    del temperaryList[:]
+
+    # Basic Layout:
+    #   When a Jargon tag is recognized, the Jargon flag is activated
+    #   Once past the Jargon tag, the contents flag is activated
+    #   If another tag exists within the contents, a tertiary flag is used to skip that tag
+
+    # Iterate over the list of unfiltered Jargon
+    for i in range(length):
+        
+        # While the flag is active, capture everything inbetween the Jargon tags
+        if jargonContents is 1:
+            
+            # Indicates that a tag has been found
+            if file[i] is "<":
+                # Indicates that the tag found is a closing Jargon tag
+                if file[i+1] is "/" and file[i+2] is "J" or file[i+2] is "j" and file[i+3] is "a" and file[i+4] is "r" and file[i+5] is "g" and file[i+6] is "o" and file[i+7] is "n" and file[i+8] is ">":
+                    temperaryList.append("||JargonEnds||")
+                    # Create a new indicy in the list for the current Jargon content
+                    seperatedJargon.append(str(temperaryList))
+                    # Clear the list to store the next Jargon content
+                    temperaryList.clear()
+                    jargonFlag = 1
+                    jargonContents = 0
+                # If it wasnt a closing Jargon tag, it is another tag we don't care about
+                else:
+                    ignoreFlag = 1
+
+            # Turn off the flag to start looking for content again
+            if file[i-1] is ">":
+                ignoreFlag = 0
+
+            # Add content to our list if it is not a tag
+            if ignoreFlag is 0 and file[i] is not "<":        
+                temperaryList.append(file[i])
+
+        # Indicates that a Jargon opening tag has been found
+        if file[i-7] is "<" and file[i-6] is "J" or file[i-6] is "j" and file[i-5] is "a" and file[i-4] is "r" and file[i-3] is "g" and file[i-2] is "o" and file[i-1] is "n" and file[i] is ">":
+            temperaryList.append("||JargonBegins||")
+            jargonContents = 1
+
+    
+    #print(numOfJargon)
+    return seperatedJargon
+
+
+# Function to convert   
+def ListToStr(file):
+    ACCEPTABLE_CHARACTERS = ['-', '_', ',', '.', ';', "'", ' ', '?', '"', ]
+    # initialize an empty string 
+    stringy = ""
+    jargonList = []
+   
+    # traverse in the string   
+    for i in range(len(file)):
+        
+        # Chars are all stored seperately in single quotes, this will help extract them
+        if file[i] is "'":
+            i += 1
+            if file[i] is ",":
+                i += 1
+                if file[i] is " ":
+                    continue
+            elif file[i] in ACCEPTABLE_CHARACTERS or file[i].isalpha():
+                if file[i+1] is ",":
+                    break
+                jargonList.append(file[i])
+
+    # Add all of the extracted characters together to get the content
+    for char in jargonList:
+        stringy += char
+
+    # return string   
+    return stringy 
+
+
+transcripts = open('/home/alex/Downloads/meeting-summarization-master/transcriptNames.txt', 'r').read().splitlines()
+file_name = []
+average_length = []
+for name in transcripts:
+    file_name.append(name)
+
+print(file_name)
+# Open the file and read it all into one list
+for name in file_name:
+    filename = "/home/alex/Downloads/meeting-summarization-master/annotated transcripts/" + name
+    print(name)
+    unfilteredJargon = []
+
+        # Read through the input file and append each char to a list
+    with open(filename) as f:
+        while True:
+            c = f.read(1)
+            if not c:
+                break
+            unfilteredJargon.append(c)
+
+    f.close()
+    seperatedJargon = JargonExtractor(unfilteredJargon)
+    numOfJargon = len(seperatedJargon)
+
+    total = 0
+    print("Number of Jargon is: " + str(numOfJargon))
+    for i in range(len(seperatedJargon)):
+            formattedJargon = ListToStr(seperatedJargon[i])
+            #print("Formatted: " + formattedJargon)
+            res = len(formattedJargon.split())
+            total = res + total
+            #print ("The number of words in string are : " +  str(res)) 
+
+    aver_length = total/(len(seperatedJargon))
+    average_length.append(float(aver_length))
+    print(aver_length)
+
+tot = 0
+for i in average_length:
+    tot = tot+i
+    
+print("Average length of jargon in words is: ")
+print(tot / len(average_length))
